@@ -14,7 +14,9 @@ func main() {
 		Port:        8000,
 	}
 
-	jwt := &providers.JWTProvider{}
+	jwt := &providers.JWTProvider{
+		Secret: "foobarken",
+	}
 	accountRepo := repository.NewAccountRepository()
 	accountService := services.NewAccountService(accountRepo)
 

@@ -79,17 +79,13 @@ func (me *AuthController) Login(c echo.Context) error {
 			"message": err.Error(),
 		})
 	}
-	// account, err := me.AccountService.Login(&info)
-	_, err = me.AccountService.Login(&info)
+	account, err := me.AccountService.Login(&info)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, JSONObject{
 			"message": err.Error(),
 		})
 	}
-	token, err := me.jwt.CreateJWT(JSONObject{
-		"email": "account.email",
-		"id":    "account.id",
-	})
+	token, err := me.jwt.CreateJWT(account)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, JSONObject{
 			"message": err.Error(),

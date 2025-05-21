@@ -40,7 +40,10 @@ func (me *AccountService) SignUp(info *RegisterInfo) (bool, error) {
 }
 
 func (me *AccountService) Login(info *LoginInfo) (*models.Account, error) {
-	return nil, nil
+	return &models.Account{
+		Email: "foo@bar.com",
+		Id:    12345,
+	}, nil
 }
 
 func (me *AccountService) GetProfile(acocuntId int) (*models.Account, error) {

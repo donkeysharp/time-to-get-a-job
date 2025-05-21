@@ -3,6 +3,7 @@ module github.com/donkeysharp/time-to-get-a-job-backend
 go 1.22.5
 
 require (
+	github.com/golang-jwt/jwt/v5 v5.2.2 // indirect
 	github.com/labstack/echo/v4 v4.13.3 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/lib/pq v1.10.9 // indirect
