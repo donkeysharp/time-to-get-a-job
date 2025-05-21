@@ -8,8 +8,9 @@ import (
 )
 
 type Settings struct {
-	Port        int
-	BindAddress string
+	Port            int
+	BindAddress     string
+	FrontEndBaseUrl string
 }
 
 type WebApplication struct {

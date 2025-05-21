@@ -1,6 +1,12 @@
 package repository
 
-import "github.com/donkeysharp/time-to-get-a-job-backend/internal/domain/models"
+import (
+	"errors"
+
+	"github.com/donkeysharp/time-to-get-a-job-backend/internal/domain/models"
+)
+
+var ErrItemNotFound = errors.New("item not found")
 
 type AccountRepository struct{}
 
@@ -26,6 +32,10 @@ func (me *AccountRepository) GetAll() ([]*models.Account, error) {
 
 func (me *AccountRepository) Create(item *models.Account) error {
 	return nil
+}
+
+func (me *AccountRepository) CreateActivation(item *models.Account) (string, error) {
+	return "", nil
 }
 
 func (me *AccountRepository) Update(item *models.Account) error {

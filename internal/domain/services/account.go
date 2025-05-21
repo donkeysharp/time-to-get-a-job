@@ -2,18 +2,24 @@ package services
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/donkeysharp/time-to-get-a-job-backend/internal/domain/models"
+	"github.com/donkeysharp/time-to-get-a-job-backend/internal/providers"
 	"github.com/donkeysharp/time-to-get-a-job-backend/internal/repository"
+	"github.com/donkeysharp/time-to-get-a-job-backend/internal/web"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // var InvalidParametersError = fmt.Errorf("Invalid parameters")
 var ErrPasswordsDoNotMatch = errors.New("passwords do not match")
 var ErrInvalidCredentials = errors.New("invalid credentials")
+var ErrExistingAccount = errors.New("account already exists")
 
 type AccountService struct {
 	AccountRepository *repository.AccountRepository
+	EmailProvider     *providers.EmailProvider
+	Settings          *web.Settings
 }
 
 type LoginInfo struct {
@@ -42,7 +48,38 @@ func NewAccountService(accountRepo *repository.AccountRepository) *AccountServic
 }
 
 func (me *AccountService) SignUp(info *RegisterInfo) (bool, error) {
-	return false, nil
+	if info.Password != info.ConfirmPassword {
+		return false, ErrPasswordsDoNotMatch
+	}
+	account := &models.Account{
+		Name:     info.Name,
+		LastName: info.LastName,
+		Email:    info.Email,
+	}
+	result, _ := me.AccountRepository.GetByEmail(account.Email)
+	if result != nil {
+		return false, ErrExistingAccount
+	}
+
+	err := me.AccountRepository.Create(account)
+	if err != nil {
+		return false, err
+	}
+
+	activationToken, err := me.AccountRepository.CreateActivation(account)
+	if err != nil {
+		return false, err
+	}
+
+	activationLink := fmt.Sprintf("%v/activate?activationToken=%v", me.Settings.FrontEndBaseUrl, activationToken)
+	emailMessage := fmt.Sprintf("This is your activation link: %v", activationLink)
+
+	err = me.EmailProvider.SendEmail(account.Email, "Welcome to Time To Get A Job!", emailMessage)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (me *AccountService) Login(info *LoginInfo) (*models.Account, error) {

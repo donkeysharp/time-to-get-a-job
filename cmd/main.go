@@ -10,8 +10,9 @@ import (
 
 func main() {
 	settings := &web.Settings{
-		BindAddress: "127.0.0.1",
-		Port:        8000,
+		BindAddress:     "127.0.0.1",
+		Port:            8000,
+		FrontEndBaseUrl: "http://localhost:3000",
 	}
 
 	jwt := &providers.JWTProvider{

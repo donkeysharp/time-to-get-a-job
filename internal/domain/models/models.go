@@ -10,4 +10,6 @@ type Account struct {
 	Id       int    `json:"id"`
 	Email    string `json:"email"`
 	Password string
+	Name     string `json:"name"`
+	LastName string `json:"lastName"`
 }
