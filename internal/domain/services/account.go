@@ -1,18 +1,24 @@
 package services
 
 import (
+	"errors"
+
 	"github.com/donkeysharp/time-to-get-a-job-backend/internal/domain/models"
 	"github.com/donkeysharp/time-to-get-a-job-backend/internal/repository"
+	"golang.org/x/crypto/bcrypt"
 )
+
+// var InvalidParametersError = fmt.Errorf("Invalid parameters")
+var ErrPasswordsDoNotMatch = errors.New("passwords do not match")
+var ErrInvalidCredentials = errors.New("invalid credentials")
 
 type AccountService struct {
 	AccountRepository *repository.AccountRepository
 }
 
 type LoginInfo struct {
-	Email           string `json:"email"`
-	Password        string `json:"password"`
-	ConfirmPassword string `json:"confirmPassword"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type RegisterInfo struct {
@@ -40,10 +46,17 @@ func (me *AccountService) SignUp(info *RegisterInfo) (bool, error) {
 }
 
 func (me *AccountService) Login(info *LoginInfo) (*models.Account, error) {
-	return &models.Account{
-		Email: "foo@bar.com",
-		Id:    12345,
-	}, nil
+	account, err := me.AccountRepository.GetByEmail(info.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(account.Password), []byte(info.Password))
+	if err != nil {
+		return nil, ErrInvalidCredentials
+	}
+
+	return account, nil
 }
 
 func (me *AccountService) GetProfile(acocuntId int) (*models.Account, error) {
