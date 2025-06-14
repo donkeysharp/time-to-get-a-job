@@ -27,8 +27,8 @@ type AccountService struct {
 }
 
 type LoginInfo struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `json:"email" validate:"required"`
+	Password string `json:"password" validate:"required"`
 }
 
 type RegisterInfo struct {
@@ -119,15 +119,31 @@ func (me *AccountService) SignUp(info *RegisterInfo) (bool, error) {
 }
 
 func (me *AccountService) Login(info *LoginInfo) (*models.Account, error) {
+	err := utils.Validate.Struct(info)
+	if err != nil {
+		log.Warnf("SignUp validation error: %v", err.Error())
+		return nil, ErrIncorrectFields
+	}
+
 	account, err := me.AccountRepository.GetByEmail(info.Email)
 	if err != nil {
-		return nil, err
+		log.Warnf("Login failed, %v does not exist", info.Email)
+		// for security always send invalid credentials
+		// we don't want to make enumeration easy for an attacker
+		return nil, ErrInvalidCredentials
+	}
+
+	if !account.IsActive {
+		log.Warnf("Login failed, %v is not active yet", info.Email)
+		return nil, ErrInvalidCredentials
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(account.Password), []byte(info.Password))
 	if err != nil {
+		log.Warnf("Login failed, %v password does not match the one in database", info.Email)
 		return nil, ErrInvalidCredentials
 	}
+	log.Infof("Login successfull: %v", info.Email)
 
 	return account, nil
 }

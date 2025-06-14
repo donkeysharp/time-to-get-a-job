@@ -93,6 +93,7 @@ func (me *AuthController) Login(c echo.Context) error {
 			"message": err.Error(),
 		})
 	}
+	log.Infof("%v user logged in successfully", info.Email)
 	return c.JSON(http.StatusOK, JSONObject{
 		"token": token,
 	})
