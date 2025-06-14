@@ -51,7 +51,7 @@ func (me *JobPostController) GetApplication(c echo.Context) error {
 func (me *JobPostController) RegisterRoutes(e *echo.Echo) {
 	e.GET("/jobs/", me.List)
 	e.GET("/jobs/:id", me.Get)
-	e.POST("/jobs", me.Create)
+	e.POST("/jobs/", me.Create)
 	e.PUT("/jobs/:id", me.Update)
 	e.DELETE("/jobs/:id", me.Delete)
 	e.POST("/jobs/:id/apply", me.Apply)

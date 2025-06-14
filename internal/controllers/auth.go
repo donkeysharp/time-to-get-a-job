@@ -6,6 +6,7 @@ import (
 	"github.com/donkeysharp/time-to-get-a-job-backend/internal/domain/services"
 	"github.com/donkeysharp/time-to-get-a-job-backend/internal/providers"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/gommon/log"
 )
 
 type AuthController struct {
@@ -25,6 +26,7 @@ func NewAuthController(name string, accountService *services.AccountService, jwt
 type JSONObject map[string]interface{}
 
 func (me *AuthController) RegisterAccount(c echo.Context) error {
+	log.Info("Starting Signup")
 	var info services.RegisterInfo
 	err := c.Bind(&info)
 	if err != nil {

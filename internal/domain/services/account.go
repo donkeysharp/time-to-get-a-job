@@ -3,11 +3,14 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/donkeysharp/time-to-get-a-job-backend/internal/domain/models"
 	"github.com/donkeysharp/time-to-get-a-job-backend/internal/providers"
 	"github.com/donkeysharp/time-to-get-a-job-backend/internal/repository"
+	"github.com/donkeysharp/time-to-get-a-job-backend/internal/utils"
 	"github.com/donkeysharp/time-to-get-a-job-backend/internal/web"
+	"github.com/labstack/gommon/log"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -15,6 +18,7 @@ import (
 var ErrPasswordsDoNotMatch = errors.New("passwords do not match")
 var ErrInvalidCredentials = errors.New("invalid credentials")
 var ErrExistingAccount = errors.New("account already exists")
+var ErrIncorrectFields = errors.New("incorrect fields")
 
 type AccountService struct {
 	AccountRepository *repository.AccountRepository
@@ -28,11 +32,11 @@ type LoginInfo struct {
 }
 
 type RegisterInfo struct {
-	Name            string `json:"name"`
-	LastName        string `json:"lastName"`
-	Email           string `json:"email"`
-	Password        string `json:"password"`
-	ConfirmPassword string `json:"confirmPassword"`
+	Name            string `json:"name" validate:"required"`
+	LastName        string `json:"lastName" validate:"required"`
+	Email           string `json:"email" validate:"required,email"`
+	Password        string `json:"password" validate:"required"`
+	ConfirmPassword string `json:"confirmPassword" validate:"required"`
 }
 
 type ResetPasswordInfo struct {
@@ -41,32 +45,64 @@ type ResetPasswordInfo struct {
 	ConfirmaPassword   string `json:"confirmPassword"`
 }
 
-func NewAccountService(accountRepo *repository.AccountRepository) *AccountService {
+func NewAccountService(accountRepo *repository.AccountRepository, emailProvider *providers.EmailProvider, settings *web.Settings) *AccountService {
 	return &AccountService{
 		AccountRepository: accountRepo,
+		EmailProvider:     emailProvider,
+		Settings:          settings,
 	}
 }
 
 func (me *AccountService) SignUp(info *RegisterInfo) (bool, error) {
+	err := utils.Validate.Struct(info)
+	if err != nil {
+		log.Warnf("SignUp validation error: %v", err.Error())
+		return false, ErrIncorrectFields
+	}
+
 	if info.Password != info.ConfirmPassword {
 		return false, ErrPasswordsDoNotMatch
 	}
-	account := &models.Account{
-		Name:     info.Name,
-		LastName: info.LastName,
-		Email:    info.Email,
+	if len(info.Password) >= 72 {
+		return false, fmt.Errorf("password length must be less than 72")
 	}
-	result, _ := me.AccountRepository.GetByEmail(account.Email)
-	if result != nil {
-		return false, ErrExistingAccount
-	}
-
-	err := me.AccountRepository.Create(account)
+	password, err := bcrypt.GenerateFromPassword([]byte(info.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return false, err
 	}
 
-	activationToken, err := me.AccountRepository.CreateActivation(account)
+	account := &models.Account{
+		Name:     info.Name,
+		LastName: info.LastName,
+		Email:    info.Email,
+		Password: string(password),
+		Role:     models.ACCOUNT_ROLE_USER,
+	}
+	result, _ := me.AccountRepository.GetByEmail(account.Email)
+	if result != nil {
+		log.Warnf("Account already exists %v", account.Email)
+		return false, ErrExistingAccount
+	}
+
+	log.Infof("result: %v", result)
+
+	err = me.AccountRepository.Create(account)
+	if err != nil {
+		return false, err
+	}
+	// Retrieve account id with new data
+	account, err = me.AccountRepository.GetByEmail(account.Email)
+	if err != nil {
+		return false, err
+	}
+
+	activationToken := utils.GenerateRandomToken()
+	now := time.Now()
+	expiration := now.Add(24 * time.Hour)
+
+	log.Infof("Activation token for %v is %v", account.Email, activationToken)
+
+	err = me.AccountRepository.CreateActivation(account.Id, activationToken, expiration)
 	if err != nil {
 		return false, err
 	}
