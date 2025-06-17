@@ -96,15 +96,39 @@ func (me *AccountService) SignUp(info *RegisterInfo) (bool, error) {
 		return false, err
 	}
 
+	if err := me.CreateActivationLink(account); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (me *AccountService) ResendActivationLink(email string) error {
+	account, err := me.AccountRepository.GetByEmail(email)
+	if err != nil {
+		return err
+	}
+
+	if account.IsActive {
+		return fmt.Errorf("account has already been activated")
+	}
+
+	if err := me.AccountRepository.DeleteActivationTokenByAccountId(account.Id); err != nil {
+		return err
+	}
+
+	return me.CreateActivationLink(account)
+}
+
+func (me *AccountService) CreateActivationLink(account *models.Account) error {
 	activationToken := utils.GenerateRandomToken()
 	now := time.Now()
 	expiration := now.Add(24 * time.Hour)
 
 	log.Infof("Activation token for %v is %v", account.Email, activationToken)
 
-	err = me.AccountRepository.CreateActivation(account.Id, activationToken, expiration)
+	err := me.AccountRepository.CreateActivation(account.Id, activationToken, expiration)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	activationLink := fmt.Sprintf("%v/activate?activationToken=%v", me.Settings.FrontEndBaseUrl, activationToken)
@@ -112,10 +136,10 @@ func (me *AccountService) SignUp(info *RegisterInfo) (bool, error) {
 
 	err = me.EmailProvider.SendEmail(account.Email, "Welcome to Time To Get A Job!", emailMessage)
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	return true, nil
+	return nil
 }
 
 func (me *AccountService) Login(info *LoginInfo) (*models.Account, error) {

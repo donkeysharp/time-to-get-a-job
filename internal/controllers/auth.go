@@ -50,8 +50,29 @@ func (me *AuthController) RegisterAccount(c echo.Context) error {
 	})
 }
 
+func (me *AuthController) ResendActivaion(c echo.Context) error {
+	log.Info("Resending a new activation link")
+	var info ResendActivationLinkInfo
+	err := c.Bind(&info)
+	if err != nil {
+		return c.JSON(http.StatusBadGateway, JSONObject{
+			"message": err.Error(),
+		})
+	}
+	if err := me.AccountService.ResendActivationLink(info.Email); err != nil {
+		log.Warnf("Failed to resend activation link: %v", err)
+	}
+	return c.JSON(http.StatusOK, JSONObject{
+		"message": "Activation link sent to the given email",
+	})
+}
+
 type ActivationInfo struct {
 	Token string `json:"token"`
+}
+
+type ResendActivationLinkInfo struct {
+	Email string `json:"email"`
 }
 
 func (me *AuthController) ActivateAccount(c echo.Context) error {
@@ -122,6 +143,7 @@ func (me *AuthController) ResetPassword(c echo.Context) error {
 func (me *AuthController) RegisterRoutes(e *echo.Echo) {
 	e.POST("/signup", me.RegisterAccount)
 	e.POST("/activate", me.ActivateAccount)
+	e.POST("/resend-activation", me.ResendActivaion)
 	e.POST("/login", me.Login)
 	e.POST("/resetpassword", me.ResetPassword)
 }

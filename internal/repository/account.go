@@ -107,6 +107,22 @@ func (me *AccountRepository) Delete(item *models.Account) error {
 	return nil
 }
 
+func (me *AccountRepository) DeleteActivationTokenByAccountId(accountId int) error {
+	sql := "delete from account_action_token where account_id = $1 and action = 'activation'"
+
+	res, err := me.db.Exec(sql, accountId)
+	if err != nil {
+		log.Errorf("Failed to delete activation token for an account: %v", err.Error())
+		return err
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	log.Infof("Deleted account activation token for account successfully rows affected: %v", rowsAffected)
+	return nil
+}
+
 func (me *AccountRepository) GetActivationToken(token string) (*models.AccountActionToken, error) {
 	sql := "select * from account_action_token where token = $1 and action = 'activation'"
 
