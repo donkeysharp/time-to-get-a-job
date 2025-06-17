@@ -156,7 +156,37 @@ func (me *AccountService) UpdateProfile(account *models.Account) error {
 	return nil
 }
 
-func (me *AccountService) Activate(activationId string) error {
+func (me *AccountService) Activate(token string) error {
+	actionToken, err := me.AccountRepository.GetActivationToken(token)
+	if err != nil {
+		return err
+	}
+
+	now := time.Now()
+	diff := actionToken.ExpiresAt.Sub(now)
+
+	if diff < 0 {
+		return fmt.Errorf("activation token expired")
+	}
+
+	account, err := me.AccountRepository.Get(actionToken.AccountId)
+	if err != nil {
+		return err
+	}
+
+	account.IsActive = true
+	log.Infof("Activating %v account", account.Email)
+	err = me.AccountRepository.Update(account)
+	if err != nil {
+		return err
+	}
+
+	log.Infof("Deleting activation token %v", token)
+	err = me.AccountRepository.DeleteActivationToken(token)
+	if err != nil {
+		return err
+	}
+	log.Infof("Activation of account %v was successful", account.Email)
 	return nil
 }
 

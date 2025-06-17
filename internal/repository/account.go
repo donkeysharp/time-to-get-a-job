@@ -51,7 +51,10 @@ func (me *AccountRepository) GetAll() ([]*models.Account, error) {
 
 func (me *AccountRepository) Create(item *models.Account) error {
 	sql := "insert into account(email, password, name, last_name, role) values ($1, $2, $3, $4, $5)"
-	res := me.db.MustExec(sql, item.Email, item.Password, item.Name, item.LastName, item.Role)
+	res, err := me.db.Exec(sql, item.Email, item.Password, item.Name, item.LastName, item.Role)
+	if err != nil {
+		return err
+	}
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
 		return err
@@ -62,10 +65,13 @@ func (me *AccountRepository) Create(item *models.Account) error {
 
 func (me *AccountRepository) CreateActivation(accountId int, token string, expiration time.Time) error {
 	sql := "insert into account_action_token(account_id, token, action, expires_at) values($1, $2, $3, $4)"
-	res := me.db.MustExec(sql, strconv.Itoa(accountId), token, "activation", expiration)
-	rowsAffected, err := res.RowsAffected()
+	res, err := me.db.Exec(sql, strconv.Itoa(accountId), token, "activation", expiration)
 	if err != nil {
 		log.Warnf("Create Actionvation failed: %v", err.Error())
+		return err
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
 		return err
 	}
 	log.Infof("CreateActivation rows affected: %v", rowsAffected)
@@ -74,8 +80,11 @@ func (me *AccountRepository) CreateActivation(accountId int, token string, expir
 }
 
 func (me *AccountRepository) Update(item *models.Account) error {
-	sql := "update account set password=$2, name=$3, last_name=$4 where id=$1"
-	res := me.db.MustExec(sql, item.Id, item.Password, item.Name, item.LastName)
+	sql := "update account set password=$2, name=$3, last_name=$4, is_active=$5 where id=$1"
+	res, err := me.db.Exec(sql, item.Id, item.Password, item.Name, item.LastName, item.IsActive)
+	if err != nil {
+		return err
+	}
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
 		return err
@@ -86,11 +95,41 @@ func (me *AccountRepository) Update(item *models.Account) error {
 
 func (me *AccountRepository) Delete(item *models.Account) error {
 	sql := "delete from account where id=$"
-	res := me.db.MustExec(sql, item.Id)
+	res, err := me.db.Exec(sql, item.Id)
+	if err != nil {
+		return err
+	}
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
 		return err
 	}
 	log.Infof("Delete account rows affected: %v", rowsAffected)
+	return nil
+}
+
+func (me *AccountRepository) GetActivationToken(token string) (*models.AccountActionToken, error) {
+	sql := "select * from account_action_token where token = $1 and action = 'activation'"
+
+	actionToken := models.AccountActionToken{}
+	err := me.db.Get(&actionToken, sql, token)
+	if err != nil {
+		return nil, err
+	}
+
+	return &actionToken, err
+}
+
+func (me *AccountRepository) DeleteActivationToken(token string) error {
+	sql := "delete from account_action_token where token = $1 and action = 'activation'"
+	res, err := me.db.Exec(sql, token)
+	if err != nil {
+		log.Errorf("Failed to delete activation token %v", err.Error())
+		return err
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	log.Infof("Delete account activation token successfully rows affected: %v", rowsAffected)
 	return nil
 }

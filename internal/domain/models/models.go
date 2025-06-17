@@ -19,6 +19,15 @@ type Account struct {
 	CreatedAt time.Time `db:"created_at"`
 }
 
+type AccountActionToken struct {
+	Id        int       `db:"id"`
+	AccountId int       `db:"account_id"`
+	Token     string    `db:"token"`
+	Action    string    `db:"action"`
+	ExpiresAt time.Time `db:"expires_at"`
+	CreatedAt time.Time `db:"created_at"`
+}
+
 type JobPost struct {
 	Id          int    `json:"id"`
 	AccountId   int    `json:"accountId"`

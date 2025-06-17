@@ -51,7 +51,7 @@ func (me *AuthController) RegisterAccount(c echo.Context) error {
 }
 
 type ActivationInfo struct {
-	ActivationId string `json:"activationId"`
+	Token string `json:"token"`
 }
 
 func (me *AuthController) ActivateAccount(c echo.Context) error {
@@ -62,7 +62,7 @@ func (me *AuthController) ActivateAccount(c echo.Context) error {
 			"message": err.Error(),
 		})
 	}
-	err = me.AccountService.Activate(info.ActivationId)
+	err = me.AccountService.Activate(info.Token)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, JSONObject{
 			"message": err.Error(),
