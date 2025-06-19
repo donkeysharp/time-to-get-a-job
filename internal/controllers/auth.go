@@ -52,7 +52,7 @@ func (me *AuthController) RegisterAccount(c echo.Context) error {
 
 func (me *AuthController) ResendActivaion(c echo.Context) error {
 	log.Info("Resending a new activation link")
-	var info ResendActivationLinkInfo
+	var info SendTokenInfo
 	err := c.Bind(&info)
 	if err != nil {
 		return c.JSON(http.StatusBadGateway, JSONObject{
@@ -71,7 +71,7 @@ type ActivationInfo struct {
 	Token string `json:"token"`
 }
 
-type ResendActivationLinkInfo struct {
+type SendTokenInfo struct {
 	Email string `json:"email"`
 }
 

@@ -63,18 +63,18 @@ func (me *AccountRepository) Create(item *models.Account) error {
 	return nil
 }
 
-func (me *AccountRepository) CreateActivation(accountId int, token string, expiration time.Time) error {
+func (me *AccountRepository) CreateActionToken(accountId int, token string, expiration time.Time, tokenType models.ActionType) error {
 	sql := "insert into account_action_token(account_id, token, action, expires_at) values($1, $2, $3, $4)"
-	res, err := me.db.Exec(sql, strconv.Itoa(accountId), token, "activation", expiration)
+	res, err := me.db.Exec(sql, strconv.Itoa(accountId), token, tokenType, expiration)
 	if err != nil {
-		log.Warnf("Create Actionvation failed: %v", err.Error())
+		log.Warnf("Create Action token failed: %v", err.Error())
 		return err
 	}
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
 		return err
 	}
-	log.Infof("CreateActivation rows affected: %v", rowsAffected)
+	log.Infof("Create action token rows affected: %v", rowsAffected)
 
 	return nil
 }
@@ -107,10 +107,10 @@ func (me *AccountRepository) Delete(item *models.Account) error {
 	return nil
 }
 
-func (me *AccountRepository) DeleteActivationTokenByAccountId(accountId int) error {
-	sql := "delete from account_action_token where account_id = $1 and action = 'activation'"
+func (me *AccountRepository) DeleteActionTokensByAccountId(accountId int, tokenType models.ActionType) error {
+	sql := "delete from account_action_token where account_id = $1 and action = $2"
 
-	res, err := me.db.Exec(sql, accountId)
+	res, err := me.db.Exec(sql, accountId, tokenType)
 	if err != nil {
 		log.Errorf("Failed to delete activation token for an account: %v", err.Error())
 		return err
@@ -123,11 +123,11 @@ func (me *AccountRepository) DeleteActivationTokenByAccountId(accountId int) err
 	return nil
 }
 
-func (me *AccountRepository) GetActivationToken(token string) (*models.AccountActionToken, error) {
-	sql := "select * from account_action_token where token = $1 and action = 'activation'"
+func (me *AccountRepository) GetActionToken(token string, tokenType models.ActionType) (*models.AccountActionToken, error) {
+	sql := "select * from account_action_token where token = $1 and action = $2"
 
 	actionToken := models.AccountActionToken{}
-	err := me.db.Get(&actionToken, sql, token)
+	err := me.db.Get(&actionToken, sql, token, tokenType)
 	if err != nil {
 		return nil, err
 	}
@@ -135,9 +135,9 @@ func (me *AccountRepository) GetActivationToken(token string) (*models.AccountAc
 	return &actionToken, err
 }
 
-func (me *AccountRepository) DeleteActivationToken(token string) error {
-	sql := "delete from account_action_token where token = $1 and action = 'activation'"
-	res, err := me.db.Exec(sql, token)
+func (me *AccountRepository) DeleteActionToken(token string, tokenType models.ActionType) error {
+	sql := "delete from account_action_token where token = $1 and action = $2"
+	res, err := me.db.Exec(sql, token, tokenType)
 	if err != nil {
 		log.Errorf("Failed to delete activation token %v", err.Error())
 		return err

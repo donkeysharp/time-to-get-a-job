@@ -112,7 +112,7 @@ func (me *AccountService) ResendActivationLink(email string) error {
 		return fmt.Errorf("account has already been activated")
 	}
 
-	if err := me.AccountRepository.DeleteActivationTokenByAccountId(account.Id); err != nil {
+	if err := me.AccountRepository.DeleteActionTokensByAccountId(account.Id, models.ACTION_TOKEN_ACTIVATION); err != nil {
 		return err
 	}
 
@@ -126,7 +126,7 @@ func (me *AccountService) CreateActivationLink(account *models.Account) error {
 
 	log.Infof("Activation token for %v is %v", account.Email, activationToken)
 
-	err := me.AccountRepository.CreateActivation(account.Id, activationToken, expiration)
+	err := me.AccountRepository.CreateActionToken(account.Id, activationToken, expiration, models.ACTION_TOKEN_ACTIVATION)
 	if err != nil {
 		return err
 	}
@@ -181,7 +181,7 @@ func (me *AccountService) UpdateProfile(account *models.Account) error {
 }
 
 func (me *AccountService) Activate(token string) error {
-	actionToken, err := me.AccountRepository.GetActivationToken(token)
+	actionToken, err := me.AccountRepository.GetActionToken(token, models.ACTION_TOKEN_ACTIVATION)
 	if err != nil {
 		return err
 	}
@@ -206,7 +206,7 @@ func (me *AccountService) Activate(token string) error {
 	}
 
 	log.Infof("Deleting activation token %v", token)
-	err = me.AccountRepository.DeleteActivationToken(token)
+	err = me.AccountRepository.DeleteActionToken(token, models.ACTION_TOKEN_ACTIVATION)
 	if err != nil {
 		return err
 	}

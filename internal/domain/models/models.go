@@ -2,10 +2,16 @@ package models
 
 import "time"
 
+type Role string
+type ActionType string
+
 const (
-	ACCOUNT_ROLE_USER     = "user"
-	ACCOUNT_ROLE_ADMIN    = "admin"
-	ACCOUNT_ROLE_EMPLOYER = "employer"
+	ACCOUNT_ROLE_USER     Role = "user"
+	ACCOUNT_ROLE_ADMIN    Role = "admin"
+	ACCOUNT_ROLE_EMPLOYER Role = "employer"
+
+	ACTION_TOKEN_ACTIVATION     ActionType = "activation"
+	ACTION_TOKEN_PASSWORD_RESET ActionType = "recovery"
 )
 
 type Account struct {
@@ -14,7 +20,7 @@ type Account struct {
 	Password  string    `db:"password"`
 	Name      string    `json:"name" db:"name"`
 	LastName  string    `json:"lastName" db:"last_name"`
-	Role      string    `db:"role"`
+	Role      Role      `db:"role"`
 	IsActive  bool      `db:"is_active"`
 	CreatedAt time.Time `db:"created_at"`
 }
