@@ -140,10 +140,29 @@ func (me *AuthController) ResetPassword(c echo.Context) error {
 	})
 }
 
+func (me *AuthController) SendResetPassword(c echo.Context) error {
+	var info SendTokenInfo
+	err := c.Bind(&info)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, JSONObject{
+			"message": err.Error(),
+		})
+	}
+	if err := me.AccountService.SendResetPassword(info.Email); err != nil {
+		return c.JSON(http.StatusInternalServerError, JSONObject{
+			"message": "Failed to send reset password link",
+		})
+	}
+	return c.JSON(http.StatusOK, JSONObject{
+		"message": "Reset password link send to email",
+	})
+}
+
 func (me *AuthController) RegisterRoutes(e *echo.Echo) {
 	e.POST("/signup", me.RegisterAccount)
 	e.POST("/activate", me.ActivateAccount)
 	e.POST("/resend-activation", me.ResendActivaion)
 	e.POST("/login", me.Login)
+	e.POST("/send-resetpassword", me.SendResetPassword)
 	e.POST("/resetpassword", me.ResetPassword)
 }

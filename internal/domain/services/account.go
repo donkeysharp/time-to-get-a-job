@@ -136,9 +136,33 @@ func (me *AccountService) CreateActivationLink(account *models.Account) error {
 
 	err = me.EmailProvider.SendEmail(account.Email, "Welcome to Time To Get A Job!", emailMessage)
 	if err != nil {
+		log.Errorf("Failed to send activation link: %v", err.Error())
+	}
+	log.Info("Activation link created successfully")
+	return nil
+}
+
+func (me *AccountService) CreateResetPasswordLink(account *models.Account) error {
+	resetToken := utils.GenerateRandomToken()
+	now := time.Now()
+	expiration := now.Add(24 * time.Hour)
+
+	log.Infof("Password reset token for %v is %v", account.Email, resetToken)
+
+	err := me.AccountRepository.CreateActionToken(account.Id, resetToken, expiration, models.ACTION_TOKEN_PASSWORD_RESET)
+	if err != nil {
 		return err
 	}
 
+	activationLink := fmt.Sprintf("%v/reset?token=%v", me.Settings.FrontEndBaseUrl, resetToken)
+	emailMessage := fmt.Sprintf("This is your password reset link: %v", activationLink)
+
+	err = me.EmailProvider.SendEmail(account.Email, "Reset Password", emailMessage)
+	if err != nil {
+		log.Errorf("Sending reset password email failed: %v", err.Error())
+		// return err
+	}
+	log.Info("Reset password link created successfully.")
 	return nil
 }
 
@@ -214,6 +238,41 @@ func (me *AccountService) Activate(token string) error {
 	return nil
 }
 
+func (me *AccountService) SendResetPassword(email string) error {
+	account, err := me.AccountRepository.GetByEmail(email)
+	if err != nil {
+		log.Warnf("Failed to get account %v: %v", email, err.Error())
+		return err
+	}
+	if err := me.CreateResetPasswordLink(account); err != nil {
+		return err
+	}
+	log.Infof("Reset password link sent successfully")
+	return nil
+}
+
 func (me *AccountService) ResetPassword(info *ResetPasswordInfo) error {
+	if info.Password != info.ConfirmaPassword {
+		return fmt.Errorf("Reset passwords do not match")
+	}
+	actionToken, err := me.AccountRepository.GetActionToken(info.ResetPasswordToken, models.ACTION_TOKEN_PASSWORD_RESET)
+	if err != nil {
+		return err
+	}
+	account, err := me.AccountRepository.Get(actionToken.AccountId)
+	if err != nil {
+		return err
+	}
+
+	newPassword, err := bcrypt.GenerateFromPassword([]byte(info.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	account.Password = string(newPassword)
+
+	if err := me.AccountRepository.Update(account); err != nil {
+		return err
+	}
+	log.Infof("Password reset successfully for %v with reset token %v", account.Email, info.ResetPasswordToken)
 	return nil
 }
