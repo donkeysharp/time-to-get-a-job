@@ -24,6 +24,7 @@ func main() {
 		BindAddress:     "127.0.0.1",
 		Port:            8000,
 		FrontEndBaseUrl: "http://localhost:3000",
+		JWTSecret:       "foobarken",
 	}
 
 	utils.LoadValidator()
@@ -35,7 +36,7 @@ func main() {
 	}
 
 	jwt := &providers.JWTProvider{
-		Secret: "foobarken",
+		Secret: settings.JWTSecret,
 	}
 
 	email := providers.NewEmailProvider()
@@ -43,7 +44,7 @@ func main() {
 	accountService := services.NewAccountService(accountRepo, email, settings)
 
 	application := web.NewWebApplication(settings)
-	application.RegisterController(controllers.NewAccountController("account-controller"))
+	application.RegisterController(controllers.NewAccountController("account-controller", accountService, settings))
 	application.RegisterController(controllers.NewAuthController(
 		"auth-controller",
 		accountService,

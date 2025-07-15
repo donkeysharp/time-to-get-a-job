@@ -55,7 +55,7 @@ func (me *AuthController) ResendActivaion(c echo.Context) error {
 	var info SendTokenInfo
 	err := c.Bind(&info)
 	if err != nil {
-		return c.JSON(http.StatusBadGateway, JSONObject{
+		return c.JSON(http.StatusBadRequest, JSONObject{
 			"message": err.Error(),
 		})
 	}

@@ -45,6 +45,22 @@ type ResetPasswordInfo struct {
 	ConfirmaPassword   string `json:"confirmPassword"`
 }
 
+type AccountInfo struct {
+	Email    string      `json:"email"`
+	Name     string      `json:"name" validate:"required"`
+	LastName string      `json:"lastName" validate:"required"`
+	Role     models.Role `json:"role"`
+}
+
+func modelToAccountInfo(model *models.Account) *AccountInfo {
+	return &AccountInfo{
+		Email:    model.Email,
+		Name:     model.Name,
+		LastName: model.LastName,
+		Role:     model.Role,
+	}
+}
+
 func NewAccountService(accountRepo *repository.AccountRepository, emailProvider *providers.EmailProvider, settings *web.Settings) *AccountService {
 	return &AccountService{
 		AccountRepository: accountRepo,
@@ -196,12 +212,28 @@ func (me *AccountService) Login(info *LoginInfo) (*models.Account, error) {
 	return account, nil
 }
 
-func (me *AccountService) GetProfile(acocuntId int) (*models.Account, error) {
-	return nil, nil
+func (me *AccountService) GetProfile(accountId int) (*AccountInfo, error) {
+	account, err := me.AccountRepository.Get(accountId)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Infof("Profile retrieved successfully for %v", accountId)
+	return modelToAccountInfo(account), nil
 }
 
-func (me *AccountService) UpdateProfile(account *models.Account) error {
-	return nil
+func (me *AccountService) UpdateProfile(accountInfo *AccountInfo, userId int) error {
+	if err := utils.Validate.Struct(accountInfo); err != nil {
+		log.Warnf("Invalid update profile input")
+		return ErrIncorrectFields
+	}
+	account, err := me.AccountRepository.Get(userId)
+	if err != nil {
+		return err
+	}
+	account.Name = accountInfo.Name
+	account.LastName = accountInfo.LastName
+	return me.AccountRepository.Update(account)
 }
 
 func (me *AccountService) Activate(token string) error {
