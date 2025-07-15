@@ -11,6 +11,7 @@ type Settings struct {
 	Port            int
 	BindAddress     string
 	FrontEndBaseUrl string
+	JWTSecret       string
 }
 
 type WebApplication struct {
@@ -20,6 +21,7 @@ type WebApplication struct {
 
 type Controller interface {
 	RegisterRoutes(e *echo.Echo)
+	SetSettings(settings *Settings)
 	GetName() string
 }
 
@@ -35,6 +37,7 @@ func NewWebApplication(settings *Settings) *WebApplication {
 func (app *WebApplication) RegisterController(controller Controller) {
 	log.Infof("Registering controller: %v", controller.GetName())
 	controller.RegisterRoutes(app.e)
+	controller.SetSettings(app.Settings)
 }
 
 func (app *WebApplication) Start() {
